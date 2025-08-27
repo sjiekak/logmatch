@@ -47,7 +47,7 @@ func main() {
 			if matchEqual(sanitizedLines[i], sanitizedLines[matchLine]) {
 				matched = true
 
-				classes[j].occurences = append(classes[j].occurences, i)
+				classes[j].occurrences = append(classes[j].occurrences, i)
 
 				slices.SortFunc(classes, matchRank)
 
@@ -57,27 +57,27 @@ func main() {
 
 		if !matched {
 			classes = append(classes, Match{
-				event:      i,
-				occurences: []int{i},
+				event:       i,
+				occurrences: []int{i},
 			})
 		}
 
 	}
 
 	for _, class := range classes {
-		fmt.Printf(`%d matches with event "%s" for line "%s"`, len(class.occurences), strcase.ToCamel(makeEvent(sanitizedLines[class.event])), lines[class.event])
+		fmt.Printf(`%d matches with event "%s" for line "%s"`, len(class.occurrences), strcase.ToCamel(makeEvent(sanitizedLines[class.event])), lines[class.event])
 		fmt.Println()
 	}
 
 }
 
 type Match struct {
-	event      int
-	occurences []int
+	event       int
+	occurrences []int
 }
 
 func matchRank(a, b Match) int {
-	diff := len(b.occurences) - len(a.occurences)
+	diff := len(b.occurrences) - len(a.occurrences)
 	if diff != 0 {
 		return diff
 	}
