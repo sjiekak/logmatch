@@ -38,6 +38,8 @@ func main() {
 	}
 	fmt.Println("matching")
 
+	// let's keep this ordered
+	// the class which matched the most lines is assumed to be the most likely to match the next lines
 	classes := make([]Match, 0, 1024)
 
 	for i := 0; i < len(lines); i++ {
@@ -49,7 +51,11 @@ func main() {
 
 				classes[j].occurrences = append(classes[j].occurrences, i)
 
-				slices.SortFunc(classes, matchRank)
+				// sort when out of order
+				// could also find desired location and swap but lazy
+				if j != 0 && len(classes[j-1].occurrences) < len(classes[j].occurrences) {
+					slices.SortFunc(classes, matchRank)
+				}
 
 				break
 			}
