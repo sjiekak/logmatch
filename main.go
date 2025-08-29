@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"slices"
@@ -20,15 +21,30 @@ func matchEqual(a string, b string) bool {
 }
 
 func main() {
+	res, err := logmatch(os.Stdin)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, class := range res.classes {
+		fmt.Printf(`%d matches with event "%s" for line "%s"`, len(class.occurrences), class.key, res.lines[class.event])
+		fmt.Println()
+	}
+}
+
+func logmatch(r io.Reader) (state, error) {
+	st, err := logen.NewSanitizer()
+	if err != nil {
+		return state{}, err
+	}
+
 	lines := make([]string, 0, 1024)
-	scanner := bufio.NewScanner(os.Stdin)
+	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-
-	st, err := logen.NewSanitizer()
-	if err != nil {
-		panic(err)
+	if err := scanner.Err(); err != nil {
+		return state{}, err
 	}
 
 	fmt.Println("sanitizing")
@@ -63,21 +79,28 @@ func main() {
 
 		if !matched {
 			classes = append(classes, Match{
+				key:         strcase.ToCamel(makeEvent(sanitizedLines[i])),
 				event:       i,
 				occurrences: []int{i},
 			})
 		}
-
 	}
 
-	for _, class := range classes {
-		fmt.Printf(`%d matches with event "%s" for line "%s"`, len(class.occurrences), strcase.ToCamel(makeEvent(sanitizedLines[class.event])), lines[class.event])
-		fmt.Println()
-	}
+	return state{
+		lines:          lines,
+		sanitizedLines: sanitizedLines,
+		classes:        classes,
+	}, err
+}
 
+type state struct {
+	lines          []string
+	sanitizedLines []string
+	classes        []Match
 }
 
 type Match struct {
+	key         string
 	event       int
 	occurrences []int
 }
