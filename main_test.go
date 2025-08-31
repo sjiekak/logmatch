@@ -85,12 +85,12 @@ func patternWeirdString() string { // currently fail matching
 }
 
 func randomAlphanumeric(length int) string {
-	const charRange = int('z') - int('0') + 1
+	const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 	var b strings.Builder
 
-	for range length {
-		b.WriteRune(rune(int('0') + rand.IntN(charRange)))
+	for i := 0; i < length; i++ {
+		b.WriteByte(chars[rand.IntN(len(chars))])
 	}
 	return b.String()
 }
