@@ -55,10 +55,10 @@ func Test_Logmatch(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := makeText(tc.carrots, tc.sellers, tc.weird)
-			state, err := logmatch(r)
+			matchGroups, err := logmatch(r)
 			require.NoError(t, err)
 
-			assert.Len(t, state.classes, tc.expectedGroups)
+			assert.Len(t, matchGroups, tc.expectedGroups)
 
 		})
 	}

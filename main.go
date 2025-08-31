@@ -25,53 +25,35 @@ func main() {
 		panic(err)
 	}
 
-	for _, class := range res.classes {
-		fmt.Printf(`%d matches with event "%s" for line "%s"`, len(class.occurrences), class.eventName, res.lines[class.representative])
+	for _, group := range res {
+		fmt.Printf(`%d matches with event "%s" for line "%s"`, len(group.occurrences), group.eventName, group.representative)
 		fmt.Println()
 	}
 }
 
-func logmatch(r io.Reader) (state, error) {
+func logmatch(r io.Reader) ([]Match, error) {
 	st, err := logen.NewSanitizer()
 	if err != nil {
-		return state{}, err
+		return nil, err
 	}
-
-	lines := make([]string, 0, 1024)
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		return state{}, err
-	}
-
-	fmt.Println("sanitizing")
-	sanitizedLines := make([]string, 0, len(lines))
-	for i := range lines {
-		sanitizedLines = append(sanitizedLines, st.Sanitized(lines[i]))
-	}
-	fmt.Println("matching")
 
 	// let's keep this ordered
 	// the class which matched the most lines is assumed to be the most likely to match the next lines
-	matchGroups := make([]Match, 0, 1024)
+	matchGroups := make([]Match, 0, 16)
+	scanner := bufio.NewScanner(r)
 
-	for i := 0; i < len(lines); i++ {
+	lineNum := 0
+	for scanner.Scan() {
+		currentLine := scanner.Text()
+		currentSanitized := st.Sanitized(currentLine)
+
 		var matched bool
-		for j := range matchGroups {
-			matchLine := matchGroups[j].representative
-			if matchEqual(sanitizedLines[i], sanitizedLines[matchLine]) {
+		for i := range matchGroups {
+			if matchEqual(matchGroups[i].representative, currentSanitized) {
 				matched = true
 
-				matchGroups[j].occurrences = append(matchGroups[j].occurrences, i)
-				moveToCorrectRank(matchGroups, j)
-
-				// sort when out of order
-				// could also find desired location and swap but lazy
-				/*if j != 0 && len(matchGroups[j-1].occurrences) < len(matchGroups[j].occurrences) {
-					slices.SortFunc(matchGroups, matchRank)
-				}*/
+				matchGroups[i].occurrences = append(matchGroups[i].occurrences, lineNum)
+				moveToCorrectRank(matchGroups, i)
 
 				break
 			}
@@ -79,18 +61,17 @@ func logmatch(r io.Reader) (state, error) {
 
 		if !matched {
 			matchGroups = append(matchGroups, Match{
-				eventName:      strcase.ToCamel(makeEvent(sanitizedLines[i])),
-				representative: i,
-				occurrences:    []int{i},
+				eventName:      makeEvent(currentSanitized),
+				representative: currentSanitized,
+				rawLine:        currentLine,
+				occurrences:    []int{lineNum},
 			})
 		}
+
+		lineNum++
 	}
 
-	return state{
-		lines:          lines,
-		sanitizedLines: sanitizedLines,
-		classes:        matchGroups,
-	}, nil
+	return matchGroups, scanner.Err()
 }
 
 // move the element at index in its correct position in the sorted match group list
@@ -116,24 +97,17 @@ type state struct {
 
 type Match struct {
 	eventName      string
-	representative int
+	representative string
+	rawLine        string
 	occurrences    []int
 }
 
-func matchRank(a, b Match) int {
-	diff := len(b.occurrences) - len(a.occurrences)
-	if diff != 0 {
-		return diff
-	}
-
-	return b.representative - a.representative
-}
-
 func makeEvent(s string) string {
+	event := s
 	loc := rePunctuation.FindStringIndex(s)
-	if len(loc) == 0 {
-		return s
+	if len(loc) > 0 {
+		event = s[:loc[0]]
 	}
 
-	return s[:loc[0]]
+	return strcase.ToCamel(event)
 }
