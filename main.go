@@ -86,6 +86,10 @@ func logmatch(r io.Reader) (state, error) {
 		}
 	}
 
+	return state{
+		lines:          lines,
+		sanitizedLines: sanitizedLines,
+		classes:        classes,
 	}, nil
 }
 
