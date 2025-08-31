@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"regexp"
-	"slices"
 
 	"github.com/iancoleman/strcase"
 	"github.com/sjiekak/logen"
@@ -66,12 +65,13 @@ func logmatch(r io.Reader) (state, error) {
 				matched = true
 
 				matchGroups[j].occurrences = append(matchGroups[j].occurrences, i)
+				moveToCorrectRank(matchGroups, j)
 
 				// sort when out of order
 				// could also find desired location and swap but lazy
-				if j != 0 && len(matchGroups[j-1].occurrences) < len(matchGroups[j].occurrences) {
+				/*if j != 0 && len(matchGroups[j-1].occurrences) < len(matchGroups[j].occurrences) {
 					slices.SortFunc(matchGroups, matchRank)
-				}
+				}*/
 
 				break
 			}
@@ -91,6 +91,21 @@ func logmatch(r io.Reader) (state, error) {
 		sanitizedLines: sanitizedLines,
 		classes:        matchGroups,
 	}, nil
+}
+
+// move the element at index in its correct position in the sorted match group list
+// works only because the index is already >= index + n
+func moveToCorrectRank(matchGroups []Match, index int) {
+	j := index - 1
+	for j >= 0 && len(matchGroups[j].occurrences) < len(matchGroups[index].occurrences) {
+		j--
+	}
+
+	j++
+	if j == index {
+		return
+	}
+	matchGroups[j], matchGroups[index] = matchGroups[index], matchGroups[j]
 }
 
 type state struct {
