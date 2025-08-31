@@ -21,36 +21,36 @@ func Test_Logen(t *testing.T) {
 
 func Test_Logmatch(t *testing.T) {
 	for _, tc := range []struct {
-		name            string
-		carrots         int
-		sellers         int
-		weird           int
-		expectedClasses int
+		name           string
+		carrots        int
+		sellers        int
+		weird          int
+		expectedGroups int
 	}{
 		{
 			name: "Empty",
 		},
 		{
-			name:            "Carrots",
-			carrots:         100,
-			expectedClasses: 1,
+			name:           "Carrots",
+			carrots:        100,
+			expectedGroups: 1,
 		},
 		{
-			name:            "Sellers",
-			sellers:         100,
-			expectedClasses: 1,
+			name:           "Sellers",
+			sellers:        100,
+			expectedGroups: 1,
 		},
 		{
-			name:            "Weirds",
-			weird:           1,
-			expectedClasses: 1,
+			name:           "Weirds",
+			weird:          1,
+			expectedGroups: 1,
 		},
 		{
-			name:            "All",
-			carrots:         100,
-			sellers:         100,
-			weird:           1,
-			expectedClasses: 3,
+			name:           "All",
+			carrots:        100,
+			sellers:        100,
+			weird:          1,
+			expectedGroups: 3,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -58,7 +58,7 @@ func Test_Logmatch(t *testing.T) {
 			state, err := logmatch(r)
 			require.NoError(t, err)
 
-			assert.Len(t, state.classes, tc.expectedClasses)
+			assert.Len(t, state.classes, tc.expectedGroups)
 
 		})
 	}

@@ -27,7 +27,7 @@ func main() {
 	}
 
 	for _, class := range res.classes {
-		fmt.Printf(`%d matches with event "%s" for line "%s"`, len(class.occurrences), class.key, res.lines[class.event])
+		fmt.Printf(`%d matches with event "%s" for line "%s"`, len(class.occurrences), class.eventName, res.lines[class.representative])
 		fmt.Println()
 	}
 }
@@ -56,21 +56,21 @@ func logmatch(r io.Reader) (state, error) {
 
 	// let's keep this ordered
 	// the class which matched the most lines is assumed to be the most likely to match the next lines
-	classes := make([]Match, 0, 1024)
+	matchGroups := make([]Match, 0, 1024)
 
 	for i := 0; i < len(lines); i++ {
 		var matched bool
-		for j := range classes {
-			matchLine := classes[j].event
+		for j := range matchGroups {
+			matchLine := matchGroups[j].representative
 			if matchEqual(sanitizedLines[i], sanitizedLines[matchLine]) {
 				matched = true
 
-				classes[j].occurrences = append(classes[j].occurrences, i)
+				matchGroups[j].occurrences = append(matchGroups[j].occurrences, i)
 
 				// sort when out of order
 				// could also find desired location and swap but lazy
-				if j != 0 && len(classes[j-1].occurrences) < len(classes[j].occurrences) {
-					slices.SortFunc(classes, matchRank)
+				if j != 0 && len(matchGroups[j-1].occurrences) < len(matchGroups[j].occurrences) {
+					slices.SortFunc(matchGroups, matchRank)
 				}
 
 				break
@@ -78,10 +78,10 @@ func logmatch(r io.Reader) (state, error) {
 		}
 
 		if !matched {
-			classes = append(classes, Match{
-				key:         strcase.ToCamel(makeEvent(sanitizedLines[i])),
-				event:       i,
-				occurrences: []int{i},
+			matchGroups = append(matchGroups, Match{
+				eventName:      strcase.ToCamel(makeEvent(sanitizedLines[i])),
+				representative: i,
+				occurrences:    []int{i},
 			})
 		}
 	}
@@ -89,7 +89,7 @@ func logmatch(r io.Reader) (state, error) {
 	return state{
 		lines:          lines,
 		sanitizedLines: sanitizedLines,
-		classes:        classes,
+		classes:        matchGroups,
 	}, nil
 }
 
@@ -100,9 +100,9 @@ type state struct {
 }
 
 type Match struct {
-	key         string
-	event       int
-	occurrences []int
+	eventName      string
+	representative int
+	occurrences    []int
 }
 
 func matchRank(a, b Match) int {
@@ -111,7 +111,7 @@ func matchRank(a, b Match) int {
 		return diff
 	}
 
-	return b.event - a.event
+	return b.representative - a.representative
 }
 
 func makeEvent(s string) string {
